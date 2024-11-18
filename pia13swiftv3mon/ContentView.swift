@@ -13,31 +13,55 @@ struct ChuckJoke : Codable {
     var value : String
 }
 
+struct ChuckSearch : Codable {
+    var total : Int
+    let result : [ChuckJoke]
+}
 
 struct ContentView: View {
     
     @State var joke : ChuckJoke?
-    @State var jokecategories : [String]?
+    @State var jokecategories : [String] = []
+    
+    @State var isLoading : Bool = false
+    
+    @State var searchtext = ""
     
     var body: some View {
         
         NavigationStack {
-            VStack {
-                
-                if let joke {
-                    Text(joke.id)
-                    Text(joke.value)
-                }
-                
-                Button(action: {
-                    Task {
-                        await loadjoke()
+            
+            ZStack {
+                VStack {
+                    
+                    HStack {
+                        TextField("Search", text: $searchtext)
+                        Button(action: {
+                            Task {
+                                await makesearch()
+                            }
+                        }) {
+                            Text("Search")
+                        }
                     }
-                }) {
-                    Text("Load random joke")
-                }
-                
-                if let jokecategories {
+                    
+                    if let joke {
+                        Text(joke.id)
+                        Text(joke.value)
+                            .frame(height: 200.0)
+                    }
+                    
+                    Button(action: {
+                        Task {
+                            isLoading = true
+                            await loadjoke()
+                            isLoading = false
+                        }
+                    }) {
+                        Text("Load random joke")
+                    }
+                    
+                    
                     List(jokecategories, id: \.self) { cat in
                         
                         NavigationLink(destination: CategoryView(categoryname: cat)) {
@@ -46,15 +70,35 @@ struct ContentView: View {
                         
                     }
                     
+                    
+                    
+                } // VStack
+                .padding()
+                .task {
+                    isLoading = true
+                    await loadjoke()
+                    await loadcategories()
+                    isLoading = false
                 }
                 
-            } // VStack
-            .padding()
-            .task {
-                await loadjoke()
-                await loadcategories()
-            }
-            
+                if isLoading {
+                    ZStack {
+                        VStack {
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.black)
+                        .opacity(0.5)
+                        
+                        VStack {
+                            Text("LOADING....")
+                                .foregroundColor(Color.white)
+                        }
+                        .frame(width: 200.0, height: 200.0)
+                        .background(Color("FancyRed"))
+                    }
+                }
+                
+            } // ZSTACK
         } // nav stack
     } // body
     
@@ -88,6 +132,22 @@ struct ContentView: View {
         }
     }
     
+    func makesearch() async {
+        let jokeurl = URL(string: "https://api.chucknorris.io/jokes/search?query=\(searchtext)")!
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: jokeurl)
+
+            if let searchresult = try? JSONDecoder().decode(ChuckSearch.self, from: data) {
+                
+                if searchresult.result.count > 0 {
+                    joke = searchresult.result[0]
+                }
+            }
+        } catch {
+            print("Invalid data")
+        }
+    }
 }
 
 #Preview {
