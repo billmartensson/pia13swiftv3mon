@@ -7,23 +7,9 @@
 
 import SwiftUI
 
-struct ChuckJoke : Codable {
-    var id : String
-    var url : String
-    var value : String
-}
-
-struct ChuckSearch : Codable {
-    var total : Int
-    let result : [ChuckJoke]
-}
-
 struct ContentView: View {
     
-    @State var joke : ChuckJoke?
-    @State var jokecategories : [String] = []
-    
-    @State var isLoading : Bool = false
+    @StateObject var chuckapi = ChuckAPI()
     
     @State var searchtext = ""
     
@@ -38,31 +24,30 @@ struct ContentView: View {
                         TextField("Search", text: $searchtext)
                         Button(action: {
                             Task {
-                                await makesearch()
+                                await chuckapi.makesearch(searchtext: searchtext)
                             }
                         }) {
                             Text("Search")
                         }
                     }
                     
-                    if let joke {
-                        Text(joke.id)
-                        Text(joke.value)
+                    if chuckapi.joke != nil {
+                        Text(chuckapi.joke!.id)
+                        Text(chuckapi.joke!.value)
                             .frame(height: 200.0)
                     }
                     
                     Button(action: {
                         Task {
-                            isLoading = true
-                            await loadjoke()
-                            isLoading = false
+                            await chuckapi.loadjoke()
                         }
                     }) {
                         Text("Load random joke")
                     }
                     
                     
-                    List(jokecategories, id: \.self) { cat in
+                    
+                    List(chuckapi.jokecategories, id: \.self) { cat in
                         
                         NavigationLink(destination: CategoryView(categoryname: cat)) {
                             Text(cat)
@@ -74,80 +59,23 @@ struct ContentView: View {
                     
                 } // VStack
                 .padding()
-                .task {
-                    isLoading = true
-                    await loadjoke()
-                    await loadcategories()
-                    isLoading = false
-                }
                 
-                if isLoading {
-                    ZStack {
-                        VStack {
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.black)
-                        .opacity(0.5)
-                        
-                        VStack {
-                            Text("LOADING....")
-                                .foregroundColor(Color.white)
-                        }
-                        .frame(width: 200.0, height: 200.0)
-                        .background(Color("FancyRed"))
-                    }
+                
+                if chuckapi.isLoading {
+                    LoadingView()
                 }
                 
             } // ZSTACK
+            .task {
+                await chuckapi.loadjoke()
+                await chuckapi.loadcategories()
+            }
+            
+            
         } // nav stack
     } // body
     
-    func loadjoke() async {
-        let jokeurl = URL(string: "https://api.chucknorris.io/jokes/random")!
-        
-        do {
-            let (data, _) = try await URLSession.shared.data(from: jokeurl)
-
-            if let jokedata = try? JSONDecoder().decode(ChuckJoke.self, from: data) {
-                
-                joke = jokedata
-            }
-        } catch {
-            print("Invalid data")
-        }
-    }
     
-    func loadcategories() async {
-        let jokeurl = URL(string: "https://api.chucknorris.io/jokes/categories")!
-        
-        do {
-            let (data, _) = try await URLSession.shared.data(from: jokeurl)
-
-            if let categories = try? JSONDecoder().decode([String].self, from: data) {
-                
-                jokecategories = categories
-            }
-        } catch {
-            print("Invalid data")
-        }
-    }
-    
-    func makesearch() async {
-        let jokeurl = URL(string: "https://api.chucknorris.io/jokes/search?query=\(searchtext)")!
-        
-        do {
-            let (data, _) = try await URLSession.shared.data(from: jokeurl)
-
-            if let searchresult = try? JSONDecoder().decode(ChuckSearch.self, from: data) {
-                
-                if searchresult.result.count > 0 {
-                    joke = searchresult.result[0]
-                }
-            }
-        } catch {
-            print("Invalid data")
-        }
-    }
 }
 
 #Preview {

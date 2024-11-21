@@ -11,40 +11,26 @@ struct CategoryView: View {
     
     var categoryname : String
     
-    @State var joke : ChuckJoke?
-    
+    @StateObject var chuckapi = ChuckAPI()
     
     var body: some View {
         VStack {
             Text("CATEGORY")
             Text(categoryname)
             
-            if let joke {
-                Text(joke.id)
-                Text(joke.value)
+            if chuckapi.joke != nil {
+                Text(chuckapi.joke!.id)
+                Text(chuckapi.joke!.value)
             }
             
         }
         .task {
-            await loadjoke()
+            await chuckapi.loadjokeCategory(categoryname: categoryname)
         }
     }
     
     
-    func loadjoke() async {
-        let jokeurl = URL(string: "https://api.chucknorris.io/jokes/random?category=\(categoryname)")!
-        
-        do {
-            let (data, _) = try await URLSession.shared.data(from: jokeurl)
-
-            if let jokedata = try? JSONDecoder().decode(ChuckJoke.self, from: data) {
-                
-                joke = jokedata
-            }
-        } catch {
-            print("Invalid data")
-        }
-    }
+    
     
 }
 
