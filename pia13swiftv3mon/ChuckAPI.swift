@@ -6,13 +6,14 @@
 //
 
 import Foundation
+import SwiftUI
 
-class ChuckAPI : ObservableObject {
+@Observable class ChuckAPI {
     
-    @Published var joke : ChuckJoke?
-    @Published var jokecategories : [String] = []
+    var joke : ChuckJoke?
+    var jokecategories : [String] = []
     
-    @Published var isLoading : Bool = false
+    var isLoading : Bool = false
     
     func loadjoke() async {
         isLoading = true

@@ -11,7 +11,7 @@ struct CategoryView: View {
     
     var categoryname : String
     
-    @StateObject var chuckapi = ChuckAPI()
+    @State var chuckapi = ChuckAPI()
     
     var body: some View {
         VStack {

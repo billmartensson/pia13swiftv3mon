@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     
-    @StateObject var chuckapi = ChuckAPI()
+    @State var chuckapi = ChuckAPI()
     
     @State var searchtext = ""
     
